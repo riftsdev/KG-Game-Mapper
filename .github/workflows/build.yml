@@ -1,14 +1,19 @@
-name: Build iOS (unsigned)
+name: Build and publish iOS IPA
 on:
   workflow_dispatch:
   push:
     branches: [main]
+permissions:
+  contents: write
+concurrency:
+  group: kg-mapper-release
+  cancel-in-progress: false
 jobs:
   build:
     runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
-      - name: Build device app
+      - name: Build iPhone app
         run: |
           xcodebuild -project KGGameMapper.xcodeproj -scheme KGGameMapper -configuration Release -sdk iphoneos -derivedDataPath build CODE_SIGNING_ALLOWED=NO build
           mkdir Payload
@@ -18,3 +23,11 @@ jobs:
         with:
           name: KGGameMapper-unsigned-IPA
           path: KGGameMapper-unsigned.ipa
+      - name: Publish direct download
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if ! gh release view latest >/dev/null 2>&1; then
+            gh release create latest --title "KG Game Mapper - Latest Build" --notes "Compilação automática. IPA sem assinatura: requer assinatura válida antes da instalação." --prerelease
+          fi
+          gh release upload latest KGGameMapper-unsigned.ipa --clobber
