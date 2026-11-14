@@ -1,0 +1,20 @@
+name: Build iOS (unsigned)
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+jobs:
+  build:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build device app
+        run: |
+          xcodebuild -project KGGameMapper.xcodeproj -scheme KGGameMapper -configuration Release -sdk iphoneos -derivedDataPath build CODE_SIGNING_ALLOWED=NO build
+          mkdir Payload
+          cp -R build/Build/Products/Release-iphoneos/KGGameMapper.app Payload/
+          zip -r KGGameMapper-unsigned.ipa Payload
+      - uses: actions/upload-artifact@v4
+        with:
+          name: KGGameMapper-unsigned-IPA
+          path: KGGameMapper-unsigned.ipa
